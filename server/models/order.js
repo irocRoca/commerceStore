@@ -39,4 +39,31 @@ orderSchema.virtual("totalQty").get(function () {
   return this.lineItems.reduce((total, item) => total + item.qty, 0);
 });
 
+orderSchema.statics.getCart = function (userId) {
+  return this.findOneAndUpdate(
+    {
+      user: userId,
+      isPaid: false,
+    },
+    { user: userId },
+    { upsert: true, new: true }
+  );
+};
+
+orderSchema.methods.addItemToCart = async function (itemId) {
+  const cart = this;
+
+  const lineItem = cart.lineItems.find((lineItem) =>
+    lineItem.item._id.equals(itemId)
+  );
+  if (lineItem) {
+    lineItem += 1;
+  } else {
+    const item = await mongoose.model("Item").findById(itemId);
+    cart.lineItems.push({ item });
+  }
+
+  return cart.save();
+};
+
 module.exports = mongoose.model("Order", orderSchema);
